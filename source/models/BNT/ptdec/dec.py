@@ -63,7 +63,7 @@ class DEC(nn.Module):
         # Multiply the encoded vectors by the cluster assignment to get the final node representations
         # [batch size, cluster_number, hidden dimension]
         node_repr = torch.bmm(assignment.transpose(1, 2), encoded)
-        return node_repr, assignment
+        return encoded, assignment
 
     def target_distribution(self, batch: torch.Tensor) -> torch.Tensor:
         """

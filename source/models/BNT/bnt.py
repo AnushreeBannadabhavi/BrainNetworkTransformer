@@ -6,6 +6,7 @@ from typing import List
 from .components import InterpretableTransformerEncoder
 from omegaconf import DictConfig
 from ..base import BaseModel
+from torch_geometric.nn import DenseSAGEConv, dense_diff_pool
 
 
 class TransPoolingEncoder(nn.Module):
@@ -69,6 +70,10 @@ class BrainNetworkTransformer(BaseModel):
             forward_dim = config.dataset.node_sz + config.model.pos_embed_dim
             nn.init.kaiming_normal_(self.node_identity)
 
+        self.conv1x1 = nn.Sequential(
+                    nn.Conv2d(4,1,kernel_size=1),
+                    nn.ReLU())
+
         sizes = config.model.sizes
         sizes[0] = config.dataset.node_sz
         in_sizes = [config.dataset.node_sz] + sizes[:-1]
@@ -109,10 +114,18 @@ class BrainNetworkTransformer(BaseModel):
             node_feature = torch.cat([node_feature, pos_emb], dim=-1)
 
         assignments = []
+        attn_weights = []
 
         for atten in self.attention_list:
             node_feature, assignment = atten(node_feature)
             assignments.append(assignment)
+            attn_weights.append(atten.get_attention_weights())
+
+        #breakpoint()
+        adj_matrix = attn_weights[1] #torch.reshape(self.conv1x1(attn_weights[0]),(-1,200,200)) #TODO: Try with different attn matrices, currently not using 1x1 conv
+
+        #breakpoint()
+        node_feature, adj, l1, e1 = dense_diff_pool(node_feature, adj_matrix, assignments[1], None)
 
         node_feature = self.dim_reduction(node_feature)
 
