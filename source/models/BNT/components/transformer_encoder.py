@@ -17,7 +17,8 @@ class InterpretableTransformerEncoder(TransformerEncoderLayer):
         x, weights = self.self_attn(x, x, x,
                                     attn_mask=attn_mask,
                                     key_padding_mask=key_padding_mask,
-                                    need_weights=True)
+                                    need_weights=True,
+                                    average_attn_weights=False)
         self.attention_weights = weights
         return self.dropout1(x)
 

@@ -1,7 +1,7 @@
 # seq, gnn, fbnetgen 
 name: BrainNetworkTransformer
 sizes: [360, 100]  # Note: The input node size should not be included here
-pooling: [false, true]
+pooling: [false, false]
 pos_encoding: none  # identity, none
 orthogonal: true
 freeze_center: true

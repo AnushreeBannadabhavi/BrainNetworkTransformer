@@ -77,7 +77,6 @@ class ClusterAssignment(nn.Module):
         """
 
         if self.project_assignment:
-
             assignment = batch@self.cluster_centers.T
             # prove
             assignment = torch.pow(assignment, 2)

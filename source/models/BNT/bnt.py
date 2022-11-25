@@ -6,6 +6,49 @@ from typing import List
 from .components import InterpretableTransformerEncoder
 from omegaconf import DictConfig
 from ..base import BaseModel
+from torch_geometric.nn import DenseSAGEConv, dense_diff_pool
+
+class GNN(torch.nn.Module):
+    def __init__(self, in_channels, hidden_channels, out_channels,
+                 normalize=False, lin=True):
+        super().__init__()
+
+        self.conv1 = DenseSAGEConv(in_channels, hidden_channels, normalize)
+        self.bn1 = torch.nn.BatchNorm1d(hidden_channels)
+        self.conv2 = DenseSAGEConv(hidden_channels, hidden_channels, normalize)
+        self.bn2 = torch.nn.BatchNorm1d(hidden_channels)
+        self.conv3 = DenseSAGEConv(hidden_channels, out_channels, normalize)
+        self.bn3 = torch.nn.BatchNorm1d(out_channels)
+
+        if lin is True:
+            self.lin = torch.nn.Linear(2 * hidden_channels + out_channels,
+                                       out_channels)
+        else:
+            self.lin = None
+
+    def bn(self, i, x):
+        batch_size, num_nodes, num_channels = x.size()
+
+        x = x.view(-1, num_channels)
+        x = getattr(self, f'bn{i}')(x)
+        x = x.view(batch_size, num_nodes, num_channels)
+        return x
+
+
+    def forward(self, x, adj, mask=None):
+        batch_size, num_nodes, in_channels = x.size()
+
+        x0 = x
+        x1 = self.bn(1, self.conv1(x0, adj, mask).relu())
+        x2 = self.bn(2, self.conv2(x1, adj, mask).relu())
+        x3 = self.bn(3, self.conv3(x2, adj, mask).relu())
+
+        x = torch.cat([x1, x2, x3], dim=-1)
+
+        if self.lin is not None:
+            x = self.lin(x).relu()
+
+        return x
 
 
 class TransPoolingEncoder(nn.Module):
@@ -98,6 +141,11 @@ class BrainNetworkTransformer(BaseModel):
             nn.Linear(32, 2)
         )
 
+        self.gnn2_pool = GNN(200, 200, 100)
+        self.conv1x1 = nn.Sequential(
+                    nn.Conv2d(4,1,kernel_size=1),
+                    nn.ReLU())
+
     def forward(self,
                 time_seires: torch.tensor,
                 node_feature: torch.tensor):
@@ -109,10 +157,18 @@ class BrainNetworkTransformer(BaseModel):
             node_feature = torch.cat([node_feature, pos_emb], dim=-1)
 
         assignments = []
+        attn_weights = []
 
         for atten in self.attention_list:
             node_feature, assignment = atten(node_feature)
             assignments.append(assignment)
+            attn_weights.append(atten.get_attention_weights())
+
+        adj_matrix = torch.reshape(self.conv1x1(attn_weights[0]),(-1,200,200)) #TODO: Try with different attn matrices
+
+        assignMat = self.gnn2_pool(node_feature,adj_matrix, None)
+        node_feature, adj, l1, e1 = dense_diff_pool(node_feature, adj_matrix, assignMat, None)
+        #breakpoint()
 
         node_feature = self.dim_reduction(node_feature)
 
