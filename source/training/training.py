@@ -160,8 +160,10 @@ class Train:
                 f'Test Accuracy:{self.test_accuracy.avg: .3f}%',
                 f'Val AUC:{val_result[0]:.4f}',
                 f'Test AUC:{test_result[0]:.4f}',
+                f'Val Accuracy:{self.val_accuracy.avg: .3f}',
+                f'Val Loss{self.val_loss.avg: .3f}',
                 f'Test Sen:{test_result[-1]:.4f}',
-                f'LR:{self.lr_schedulers[0].lr:.4f}'
+                f'LR:{self.lr_schedulers[0].lr:.5f}'
             ]))
 
             wandb.log({
@@ -170,6 +172,8 @@ class Train:
                 "Test Loss": self.test_loss.avg,
                 "Test Accuracy": self.test_accuracy.avg,
                 "Val AUC": val_result[0],
+                "Val Loss": self.val_loss.avg,
+                "Val Accuracy": self.val_accuracy.avg,
                 "Test AUC": test_result[0],
                 'Test Sensitivity': test_result[-1],
                 'Test Specificity': test_result[-2],
@@ -192,6 +196,7 @@ class Train:
                 'micro precision': test_result[-6],
                 "Val AUC": val_result[0],
                 "Val Loss": self.val_loss.avg,
+                "Val Accuracy": self.val_accuracy.avg,
             })
 
         if self.save_learnable_graph:
