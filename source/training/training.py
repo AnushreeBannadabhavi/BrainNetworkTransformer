@@ -157,8 +157,7 @@ class Train:
     def train(self):
         training_process = []
         self.current_step = 0
-        best_test_accuracy = 0
-        best_test_AUC = 0
+        best_val_AUC = 0
         for epoch in range(self.epochs):
             self.reset_meters()
             self.train_per_epoch(self.optimizers[0], self.lr_schedulers[0])
@@ -198,13 +197,14 @@ class Train:
                 'micro precision': test_result[-6],
             })
 
-            if (self.test_accuracy.avg > best_test_accuracy):
-                best_test_accuracy = self.test_accuracy.avg
-                wandb.run.summary["Best Test Accuracy"] = best_test_accuracy
-
-            if (test_result[0] > best_test_AUC):
-                wandb.run.summary["Best Test AUC best"] = test_result[0]
-                best_test_AUC = test_result[0]
+            if(val_result[0] > best_val_AUC):
+                best_val_AUC = val_result[0]
+                wandb.run.summary["Best Test Accuracy"] = self.test_accuracy.avg
+                wandb.run.summary["Best Test AUC"] = test_result[0]
+                wandb.run.summary["Best Val AUC"] = val_result[0]
+                wandb.run.summary["Best Val Accuracy"] = self.val_accuracy.avg
+                wandb.run.summary["Best Test Sensitivity"] = test_result[-1]
+                wandb.run.summary["Best Test Specificity"] = test_result[-2]
 
 
             training_process.append({
@@ -219,9 +219,9 @@ class Train:
                 'micro F1': test_result[-4],
                 'micro recall': test_result[-5],
                 'micro precision': test_result[-6],
+                "Val AUC": val_result[0],
                 "Val Loss": self.val_loss.avg,
                 "Val Accuracy": self.val_accuracy.avg,
-                "Val AUC": val_result[0],
             })
 
         if self.save_learnable_graph:
