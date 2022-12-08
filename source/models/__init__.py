@@ -5,7 +5,7 @@ from .fbnetgen import FBNETGEN
 from .BNT import BrainNetworkTransformer
 
 
-def model_factory(config: DictConfig):
+def model_factory(config: DictConfig, repeat_index):
     if config.model.name in ["LogisticRegression", "SVC"]:
         return None
-    return eval(config.model.name)(config).cuda()
+    return eval(config.model.name)(config, repeat_index).cuda()

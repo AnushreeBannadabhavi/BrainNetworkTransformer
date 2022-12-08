@@ -58,9 +58,9 @@ class TransPoolingEncoder(nn.Module):
     Output size: (batch_size, output_node_num, input_feature_size)
     """
 
-    def __init__(self, input_feature_size, input_node_num, hidden_size, output_node_num, pooling=True, orthogonal=True, freeze_center=False, project_assignment=True):
+    def __init__(self, input_feature_size, input_node_num, hidden_size, output_node_num, pooling=True, orthogonal=True, freeze_center=False, project_assignment=True, n_cluster=4):
         super().__init__()
-        self.transformer = InterpretableTransformerEncoder(d_model=input_feature_size, nhead=4,
+        self.transformer = InterpretableTransformerEncoder(d_model=input_feature_size, nhead=n_cluster,
                                                            dim_feedforward=hidden_size,
                                                            batch_first=True)
 
@@ -98,7 +98,7 @@ class TransPoolingEncoder(nn.Module):
 
 class BrainNetworkTransformer(BaseModel):
 
-    def __init__(self, config: DictConfig):
+    def __init__(self, config: DictConfig, repeat_index):
 
         super().__init__()
 
@@ -117,6 +117,7 @@ class BrainNetworkTransformer(BaseModel):
         in_sizes = [config.dataset.node_sz] + sizes[:-1]
         do_pooling = config.model.pooling
         self.do_pooling = do_pooling
+        n_cluster = config.model.n_cluster
         for index, size in enumerate(sizes):
             self.attention_list.append(
                 TransPoolingEncoder(input_feature_size=forward_dim,
@@ -126,7 +127,8 @@ class BrainNetworkTransformer(BaseModel):
                                     pooling=do_pooling[index],
                                     orthogonal=config.model.orthogonal,
                                     freeze_center=config.model.freeze_center,
-                                    project_assignment=config.model.project_assignment))
+                                    project_assignment=config.model.project_assignment,
+                                    n_cluster = n_cluster[repeat_index]))
 
         self.dim_reduction = nn.Sequential(
             nn.Linear(forward_dim, 8),
@@ -143,7 +145,7 @@ class BrainNetworkTransformer(BaseModel):
 
         self.gnn2_pool = GNN(200, 200, 100)
         self.conv1x1 = nn.Sequential(
-                    nn.Conv2d(4,1,kernel_size=1),
+                    nn.Conv2d(n_cluster[repeat_index],1,kernel_size=1),
                     nn.ReLU())
 
     def forward(self,
@@ -163,12 +165,11 @@ class BrainNetworkTransformer(BaseModel):
             node_feature, assignment = atten(node_feature)
             assignments.append(assignment)
             attn_weights.append(atten.get_attention_weights())
-
+        
         adj_matrix = torch.reshape(self.conv1x1(attn_weights[0]),(-1,200,200)) #TODO: Try with different attn matrices
 
         assignMat = self.gnn2_pool(node_feature,adj_matrix, None)
         node_feature, adj, l1, e1 = dense_diff_pool(node_feature, adj_matrix, assignMat, None)
-        #breakpoint()
 
         node_feature = self.dim_reduction(node_feature)
 

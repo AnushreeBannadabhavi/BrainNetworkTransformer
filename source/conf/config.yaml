@@ -8,7 +8,7 @@ defaults:
 
 repeat_time: 5
 log_path: result
-save_learnable_graph: False
+save_learnable_graph: True
 
 # wandb
 wandb_entity: bnt-bgnn

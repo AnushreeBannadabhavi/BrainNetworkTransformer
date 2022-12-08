@@ -11,6 +11,7 @@ class InterpretableTransformerEncoder(TransformerEncoderLayer):
         super().__init__(d_model, nhead, dim_feedforward, dropout, activation,
                          layer_norm_eps, batch_first, norm_first, device, dtype)
         self.attention_weights: Optional[Tensor] = None
+        print("nhead = ",nhead)
 
     def _sa_block(self, x: Tensor,
                   attn_mask: Optional[Tensor], key_padding_mask: Optional[Tensor]) -> Tensor:

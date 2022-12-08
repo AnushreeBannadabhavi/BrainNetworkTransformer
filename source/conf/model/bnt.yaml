@@ -7,3 +7,4 @@ orthogonal: true
 freeze_center: true
 project_assignment: true
 pos_embed_dim: 360
+n_cluster: [4,8,10,100,200]

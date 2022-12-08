@@ -7,16 +7,17 @@ from .models import model_factory
 from .components import lr_scheduler_factory, optimizers_factory, logger_factory
 from .training import training_factory
 from datetime import datetime
+from pathlib import Path
 
 
-def model_training(cfg: DictConfig):
+def model_training(cfg: DictConfig, repeat_index):
 
     with open_dict(cfg):
         cfg.unique_id = datetime.now().strftime("%m-%d-%H-%M-%S")
 
     dataloaders = dataset_factory(cfg)
     logger = logger_factory(cfg)
-    model = model_factory(cfg)
+    model = model_factory(cfg, repeat_index)
     optimizers = optimizers_factory(
         model=model, optimizer_configs=cfg.optimizer)
     lr_schedulers = lr_scheduler_factory(lr_configs=cfg.optimizer,
@@ -34,13 +35,18 @@ def main(cfg: DictConfig):
     # _{cfg.training.name}\
     # _{cfg.optimizer[0].lr_scheduler.mode}"
 
-    for _ in range(cfg.repeat_time):
+    save_path = []
+
+    for repeat_index in range(cfg.repeat_time):
         run = wandb.init(project=cfg.project, entity=cfg.wandb_entity, reinit=True,
                          group=f"{group_name}", tags=[f"{cfg.dataset.name}"])
-        model_training(cfg)
+        model_training(cfg, repeat_index)
+        save_path.append(Path(cfg.log_path) / cfg.unique_id)
+        print("save_path :", save_path)
 
         run.finish()
-
+    
+    
 
 if __name__ == '__main__':
     main()

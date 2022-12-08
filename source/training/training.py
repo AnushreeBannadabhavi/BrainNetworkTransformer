@@ -121,15 +121,29 @@ class Train:
 
         labels = []
 
+        self.model.eval()
+        self.save_path.mkdir(exist_ok=True, parents=True)
+
+        attn_np0 = []
+        attn_np1 = []
+
+
         for time_series, node_feature, label in self.test_dataloader:
             label = label.long()
             time_series, node_feature, label = time_series.cuda(), node_feature.cuda(), label.cuda()
-            _, learable_matrix, _ = self.model(time_series, node_feature)
+            learable_matrix = self.model(time_series, node_feature)
+            
+            attn_weights_list = self.model.get_attention_weights()
+            attn_np0.append(attn_weights_list[0].detach().cpu().numpy())
+            attn_np1.append(attn_weights_list[1].detach().cpu().numpy())
 
             learable_matrixs.append(learable_matrix.cpu().detach().numpy())
             labels += label.tolist()
 
-        self.save_path.mkdir(exist_ok=True, parents=True)
+        
+        np.save(self.save_path/"attnWeights0.npy", np.vstack(attn_np0), allow_pickle=True)
+        np.save(self.save_path/"attnWeights1.npy", np.vstack(attn_np1), allow_pickle=True)
+        #self.save_path.mkdir(exist_ok=True, parents=True)
         np.save(self.save_path/"learnable_matrix.npy", {'matrix': np.vstack(
             learable_matrixs), "label": np.array(labels)}, allow_pickle=True)
 
@@ -143,6 +157,8 @@ class Train:
     def train(self):
         training_process = []
         self.current_step = 0
+        best_test_accuracy = 0
+        best_test_AUC = 0
         for epoch in range(self.epochs):
             self.reset_meters()
             self.train_per_epoch(self.optimizers[0], self.lr_schedulers[0])
@@ -158,10 +174,10 @@ class Train:
                 f'Train Accuracy:{self.train_accuracy.avg: .3f}%',
                 f'Test Loss:{self.test_loss.avg: .3f}',
                 f'Test Accuracy:{self.test_accuracy.avg: .3f}%',
-                f'Val AUC:{val_result[0]:.4f}',
                 f'Test AUC:{test_result[0]:.4f}',
                 f'Val Accuracy:{self.val_accuracy.avg: .3f}',
                 f'Val Loss{self.val_loss.avg: .3f}',
+                f'Val AUC:{val_result[0]:.4f}',
                 f'Test Sen:{test_result[-1]:.4f}',
                 f'LR:{self.lr_schedulers[0].lr:.5f}'
             ]))
@@ -171,16 +187,25 @@ class Train:
                 "Train Accuracy": self.train_accuracy.avg,
                 "Test Loss": self.test_loss.avg,
                 "Test Accuracy": self.test_accuracy.avg,
-                "Val AUC": val_result[0],
+                "Test AUC": test_result[0],
                 "Val Loss": self.val_loss.avg,
                 "Val Accuracy": self.val_accuracy.avg,
-                "Test AUC": test_result[0],
+                "Val AUC": val_result[0],
                 'Test Sensitivity': test_result[-1],
                 'Test Specificity': test_result[-2],
                 'micro F1': test_result[-4],
                 'micro recall': test_result[-5],
                 'micro precision': test_result[-6],
             })
+
+            if (self.test_accuracy.avg > best_test_accuracy):
+                best_test_accuracy = self.test_accuracy.avg
+                wandb.run.summary["Best Test Accuracy"] = best_test_accuracy
+
+            if (test_result[0] > best_test_AUC):
+                wandb.run.summary["Best Test AUC best"] = test_result[0]
+                best_test_AUC = test_result[0]
+
 
             training_process.append({
                 "Epoch": epoch,
@@ -194,9 +219,9 @@ class Train:
                 'micro F1': test_result[-4],
                 'micro recall': test_result[-5],
                 'micro precision': test_result[-6],
-                "Val AUC": val_result[0],
                 "Val Loss": self.val_loss.avg,
                 "Val Accuracy": self.val_accuracy.avg,
+                "Val AUC": val_result[0],
             })
 
         if self.save_learnable_graph:
