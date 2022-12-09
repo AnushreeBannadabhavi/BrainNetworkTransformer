@@ -40,6 +40,7 @@ class ClusterAssignment(nn.Module):
                 self.cluster_number, self.embedding_dimension, dtype=torch.float
             )
             nn.init.xavier_uniform_(initial_cluster_centers)
+            #initial_cluster_centers = initial_cluster_centers + torch.randn(self.cluster_number, self.embedding_dimension)
 
         else:
             initial_cluster_centers = cluster_centers
@@ -63,6 +64,8 @@ class ClusterAssignment(nn.Module):
         self.cluster_centers = Parameter(
             initial_cluster_centers, requires_grad=(not freeze_center))
 
+        self.noise = torch.randn(self.cluster_number, self.embedding_dimension).cuda() * 0.2
+
     @staticmethod
     def project(u, v):
         return (torch.dot(u, v)/torch.dot(u, u))*u
@@ -75,7 +78,7 @@ class ClusterAssignment(nn.Module):
         :param batch: FloatTensor of [batch size, embedding dimension]
         :return: FloatTensor [batch size, number of clusters]
         """
-
+        add_noise(self.cluster_centers, self.noise)
         if self.project_assignment:
 
             assignment = batch@self.cluster_centers.T
@@ -102,3 +105,8 @@ class ClusterAssignment(nn.Module):
         :return: FloatTensor [number of clusters, embedding dimension]
         """
         return self.cluster_centers
+
+def add_noise(cluster_centers, noise):
+    with torch.no_grad():
+        #return torch.add(cluster_centers , noise)
+        cluster_centers.add_(noise)
