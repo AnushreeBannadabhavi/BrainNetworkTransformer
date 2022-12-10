@@ -60,7 +60,7 @@ class TransPoolingEncoder(nn.Module):
 
     def __init__(self, input_feature_size, input_node_num, hidden_size, output_node_num, pooling=True, orthogonal=True, freeze_center=False, project_assignment=True, n_cluster=4):
         super().__init__()
-        self.transformer = InterpretableTransformerEncoder(d_model=input_feature_size, nhead=n_cluster,
+        self.transformer = InterpretableTransformerEncoder(d_model=input_feature_size, nhead=4,
                                                            dim_feedforward=hidden_size,
                                                            batch_first=True)
 
@@ -136,17 +136,22 @@ class BrainNetworkTransformer(BaseModel):
         )
 
         self.fc = nn.Sequential(
-            #nn.Linear(8 * sizes[-1], 256),
-            nn.Linear(8 * n_cluster[repeat_index], 256),
+            nn.Linear(8 * sizes[-1], 256),
+            #nn.Linear(8 * n_cluster[repeat_index], 256),
             nn.LeakyReLU(),
             nn.Linear(256, 32),
             nn.LeakyReLU(),
             nn.Linear(32, 2)
         )
 
-        self.gnn2_pool = GNN(200, 200, n_cluster[repeat_index])
+        #self.gnn2_pool = GNN(200, 200, n_cluster[repeat_index])
+        #self.conv1x1 = nn.Sequential(
+                    #nn.Conv2d(n_cluster[repeat_index],1,kernel_size=1),
+                    #nn.ReLU())
+
+        self.gnn2_pool = GNN(200, 200, sizes[-1])
         self.conv1x1 = nn.Sequential(
-                    nn.Conv2d(n_cluster[repeat_index],1,kernel_size=1),
+                    nn.Conv2d(sizes[-1],1,kernel_size=1),
                     nn.ReLU())
 
     def forward(self,
