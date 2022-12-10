@@ -25,7 +25,7 @@ def model_training(cfg: DictConfig, repeat_index):
     training = training_factory(cfg, model, optimizers,
                                 lr_schedulers, dataloaders, logger)
 
-    training.train()
+    training.train(repeat_index)
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")

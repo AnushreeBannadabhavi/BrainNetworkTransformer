@@ -136,14 +136,15 @@ class BrainNetworkTransformer(BaseModel):
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(8 * sizes[-1], 256),
+            #nn.Linear(8 * sizes[-1], 256),
+            nn.Linear(8 * n_cluster[repeat_index], 256),
             nn.LeakyReLU(),
             nn.Linear(256, 32),
             nn.LeakyReLU(),
             nn.Linear(32, 2)
         )
 
-        self.gnn2_pool = GNN(200, 200, 100)
+        self.gnn2_pool = GNN(200, 200, n_cluster[repeat_index])
         self.conv1x1 = nn.Sequential(
                     nn.Conv2d(n_cluster[repeat_index],1,kernel_size=1),
                     nn.ReLU())

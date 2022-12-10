@@ -114,7 +114,7 @@ class Train:
                 recall[int(float(k))] = report[k]['recall']
         return [auc] + list(metric) + recall
 
-    def generate_save_learnable_matrix(self):
+    def generate_save_learnable_matrix(self, repeat_index):
 
         # wandb.log({'heatmap_with_text': wandb.plots.HeatMap(x_labels, y_labels, matrix_values, show_text=False)})
         learable_matrixs = []
@@ -141,8 +141,8 @@ class Train:
             labels += label.tolist()
 
         
-        np.save(self.save_path/"attnWeights0.npy", np.vstack(attn_np0), allow_pickle=True)
-        np.save(self.save_path/"attnWeights1.npy", np.vstack(attn_np1), allow_pickle=True)
+        np.save(self.save_path/f"attnWeights0_{repeat_index}.npy", np.vstack(attn_np0), allow_pickle=True)
+        np.save(self.save_path/f"attnWeights1_{repeat_index}.npy", np.vstack(attn_np1), allow_pickle=True)
         #self.save_path.mkdir(exist_ok=True, parents=True)
         np.save(self.save_path/"learnable_matrix.npy", {'matrix': np.vstack(
             learable_matrixs), "label": np.array(labels)}, allow_pickle=True)
@@ -154,7 +154,7 @@ class Train:
 
         torch.save(self.model.state_dict(), self.save_path/"model.pt")
 
-    def train(self):
+    def train(self, repeat_index):
         training_process = []
         self.current_step = 0
         best_val_AUC = 0
@@ -225,5 +225,5 @@ class Train:
             })
 
         if self.save_learnable_graph:
-            self.generate_save_learnable_matrix()
+            self.generate_save_learnable_matrix(repeat_index)
         self.save_result(training_process)

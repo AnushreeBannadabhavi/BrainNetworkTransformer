@@ -20,6 +20,7 @@ def load_abide_data(cfg: DictConfig):
     final_timeseires, final_pearson, labels = [torch.from_numpy(
         data).float() for data in (final_timeseires, final_pearson, labels)]
 
+    #breakpoint()
     with open_dict(cfg):
 
         cfg.dataset.node_sz, cfg.dataset.node_feature_sz = final_pearson.shape[1:]
