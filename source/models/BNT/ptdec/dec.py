@@ -55,6 +55,7 @@ class DEC(nn.Module):
         # [batch size * node_num, hidden dimension]
         encoded = encoded.view(batch_size * node_num, -1)
         encoded_node_repr = encoded
+        encoded_node_repr = encoded_node_repr.view(batch_size, node_num, -1)
         # [batch size * node_num, cluster_number]
         assignment = self.assignment(encoded)
         # [batch size, node_num, cluster_number]
