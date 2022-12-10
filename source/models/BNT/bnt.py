@@ -151,7 +151,7 @@ class BrainNetworkTransformer(BaseModel):
 
         self.gnn2_pool = GNN(200, 200, sizes[-1])
         self.conv1x1 = nn.Sequential(
-                    nn.Conv2d(sizes[-1],1,kernel_size=1),
+                    nn.Conv2d(4,1,kernel_size=1), # Hard coded to 4. Should be equal to the number of attention heads
                     nn.ReLU())
 
     def forward(self,
@@ -171,7 +171,7 @@ class BrainNetworkTransformer(BaseModel):
             node_feature, assignment = atten(node_feature)
             assignments.append(assignment)
             attn_weights.append(atten.get_attention_weights())
-        
+         
         adj_matrix = torch.reshape(self.conv1x1(attn_weights[0]),(-1,200,200)) #TODO: Try with different attn matrices
 
         assignMat = self.gnn2_pool(node_feature,adj_matrix, None)
