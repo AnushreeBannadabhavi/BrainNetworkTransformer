@@ -54,17 +54,18 @@ class DEC(nn.Module):
         encoded = self.encoder(flattened_batch)
         # [batch size * node_num, hidden dimension]
         encoded = encoded.view(batch_size * node_num, -1)
+        encoded_node_repr = encoded
         # [batch size * node_num, cluster_number]
-        #assignment = self.assignment(encoded)
+        assignment = self.assignment(encoded)
         # [batch size, node_num, cluster_number]
-        #assignment = assignment.view(batch_size, node_num, -1)
+        assignment = assignment.view(batch_size, node_num, -1)
         # [batch size, node_num, hidden dimension]
         encoded = encoded.view(batch_size, node_num, -1)
         # Multiply the encoded vectors by the cluster assignment to get the final node representations
         # [batch size, cluster_number, hidden dimension]
-        #node_repr = torch.bmm(assignment.transpose(1, 2), encoded)
+        node_repr = torch.bmm(assignment.transpose(1, 2), encoded)
 
-        return encoded, None
+        return node_repr, assignment, encoded_node_repr
 
     def target_distribution(self, batch: torch.Tensor) -> torch.Tensor:
         """

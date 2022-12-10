@@ -85,9 +85,9 @@ class TransPoolingEncoder(nn.Module):
     def forward(self, x):
         x = self.transformer(x)
         if self.pooling:
-            x, assignment = self.dec(x)
-            return x, assignment
-        return x, None
+            x, assignment, encoded_node_repr = self.dec(x)
+            return x, assignment, encoded_node_repr
+        return x, None, None
 
     def get_attention_weights(self):
         return self.transformer.get_attention_weights()
@@ -154,6 +154,10 @@ class BrainNetworkTransformer(BaseModel):
                     nn.Conv2d(4,1,kernel_size=1), # Hard coded to 4. Should be equal to the number of attention heads
                     nn.ReLU())
 
+        self.ocr_diff_conv1x1 = nn.Sequential(
+                    nn.Conv2d(2,1,kernel_size=1), 
+                    nn.ReLU())
+
     def forward(self,
                 time_seires: torch.tensor,
                 node_feature: torch.tensor):
@@ -168,14 +172,20 @@ class BrainNetworkTransformer(BaseModel):
         attn_weights = []
 
         for atten in self.attention_list:
-            node_feature, assignment = atten(node_feature)
+            node_feature, assignment, encoded_node_repr = atten(node_feature)
             assignments.append(assignment)
             attn_weights.append(atten.get_attention_weights())
          
         adj_matrix = torch.reshape(self.conv1x1(attn_weights[0]),(-1,200,200)) #TODO: Try with different attn matrices
 
-        assignMat = self.gnn2_pool(node_feature,adj_matrix, None)
-        node_feature, adj, l1, e1 = dense_diff_pool(node_feature, adj_matrix, assignMat, None)
+        assignMat = self.gnn2_pool(encoded_node_repr,adj_matrix, None)
+        encoded_node_repr, adj, l1, e1 = dense_diff_pool(encoded_node_repr, adj_matrix, assignMat, None)
+
+        cluster_num = encoded_node_repr.shape[1]
+
+        # 1x1 conv
+        node_rep_stack = torch.stack(encoded_node_repr, node_feature)
+        node_feature = torch.reshape(self.ocr_diff_conv1x1(node_rep_stack),(-1,cluster_num,200))
 
         node_feature = self.dim_reduction(node_feature)
 
