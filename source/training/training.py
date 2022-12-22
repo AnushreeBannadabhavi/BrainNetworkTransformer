@@ -158,6 +158,10 @@ class Train:
         training_process = []
         self.current_step = 0
         best_val_AUC = 0
+        breakpoint()
+        #my_table = wandb.Table(columns=["self.val_dataloader", "label"])
+        #my_table.add_row(self.val_dataloader, )
+
         for epoch in range(self.epochs):
             self.reset_meters()
             self.train_per_epoch(self.optimizers[0], self.lr_schedulers[0])

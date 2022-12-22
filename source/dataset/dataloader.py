@@ -51,6 +51,16 @@ def init_stratified_dataloader(cfg: DictConfig,
                                final_pearson: torch.tensor,
                                labels: torch.tensor,
                                stratified: np.array) -> List[utils.DataLoader]:
+    class1 = 0
+    class2 = 0
+    for label in labels:
+        if label==1:
+            class1=class1+1
+        else:
+            class2=class2+1
+
+    print(f'class1 : {class1}, class2 : {class2}')
+
     labels = F.one_hot(labels.to(torch.int64))
     length = final_timeseires.shape[0]
     train_length = int(length*cfg.dataset.train_set*cfg.datasz.percentage)
@@ -82,13 +92,43 @@ def init_stratified_dataloader(cfg: DictConfig,
             test_index], final_pearson_val_test[test_index], labels_val_test[test_index]
         final_timeseires_val, final_pearson_val, labels_val = final_timeseires_val_test[
             valid_index], final_pearson_val_test[valid_index], labels_val_test[valid_index]
+    
+    class1_t = torch.tensor([1,0])
+    class2_t = torch.tensor([0,1])
+    train_class1 = 0
+    train_class2 = 0
+    for label in labels_train:
+        #breakpoint()
+        if torch.equal(label,class1_t):
+            train_class1 = train_class1+1
+        elif torch.equal(label,class2_t):
+            train_class2 =train_class2+1
+
+    val_class1 = 0
+    val_class2 = 0
+    for label in labels_val:
+        if torch.equal(label,class1_t):
+            val_class1 = val_class1+1
+        elif torch.equal(label,class2_t):
+            val_class2 =val_class2+1
+
+    test_class1 = 0
+    test_class2 = 0
+    for label in labels_test:
+        if torch.equal(label,class1_t):
+            test_class1 = test_class1+1
+        elif torch.equal(label,class2_t):
+            test_class2 =test_class2+1
+
+    print(f'train_class1 : {train_class1}, train_class2 : {train_class2}')
+    print(f'val_class1 : {val_class1}, val_class2 : {val_class2}')
+    print(f'test_class1 : {test_class1}, test_class2 : {test_class2}')
 
     train_dataset = utils.TensorDataset(
         final_timeseires_train,
         final_pearson_train,
         labels_train
     )
-
     val_dataset = utils.TensorDataset(
         final_timeseires_val, final_pearson_val, labels_val
     )

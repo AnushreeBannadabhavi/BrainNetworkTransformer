@@ -176,21 +176,40 @@ class BrainNetworkTransformer(BaseModel):
             assignments.append(assignment)
             attn_weights.append(atten.get_attention_weights())
          
-        adj_matrix = torch.reshape(self.conv1x1(attn_weights[0]),(-1,200,200)) #TODO: Try with different attn matrices
+        #adj_matrix = torch.reshape(self.conv1x1(attn_weights[0]),(-1,200,200)) #TODO: Try with different attn matrices
 
-        assignMat = self.gnn2_pool(encoded_node_repr,adj_matrix, None)
-        encoded_node_repr, adj, l1, e1 = dense_diff_pool(encoded_node_repr, adj_matrix, assignMat, None)
+        #assignMat = self.gnn2_pool(encoded_node_repr,adj_matrix, None)
+        #encoded_node_repr, adj, l1, e1 = dense_diff_pool(encoded_node_repr, adj_matrix, assignMat, None)
 
-        cluster_num = encoded_node_repr.shape[1]
+        #cluster_num = encoded_node_repr.shape[1]
 
         # 1x1 conv
-        node_rep_stack = torch.stack(encoded_node_repr, node_feature)
-        node_feature = torch.reshape(self.ocr_diff_conv1x1(node_rep_stack),(-1,cluster_num,200))
+        #node_rep_stack = torch.stack(encoded_node_repr, node_feature)
+        #node_feature = torch.reshape(self.ocr_diff_conv1x1(node_rep_stack),(-1,cluster_num,200))
 
+        #### Average ###
+        #avg_node_feature = (encoded_node_repr + node_feature)/2 
+        #node_feature = avg_node_feature
+        
+        ########### 1x1 conv ########
+        #breakpoint()
+        #node_rep_stack = torch.stack((encoded_node_repr[0],node_feature[0])) 
+        #for i in range(1,bz):
+            #node_rep_stack = torch.cat((node_rep_stack, torch.stack((encoded_node_repr[i],node_feature[i])))) # (batch * 2, cluster, node_num)
+        #breakpoint()
+
+        #node_rep_stack = node_rep_stack.view(bz,2,cluster_num,-1)
+
+        #node_rep_stack_conv = self.ocr_diff_conv1x1(node_rep_stack)
+
+        #node_feature = torch.reshape(node_rep_stack_conv,(bz,cluster_num,-1))
+
+        #############################
+        
         node_feature = self.dim_reduction(node_feature)
-
+        #breakpoint()
         node_feature = node_feature.reshape((bz, -1))
-
+        
         return self.fc(node_feature)
 
     def get_attention_weights(self):
