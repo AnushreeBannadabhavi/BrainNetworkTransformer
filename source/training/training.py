@@ -65,9 +65,8 @@ class Train:
                 time_series, node_feature, label = continus_mixup_data(
                     time_series, node_feature, y=label)
 
-            predict = self.model(time_series, node_feature)
-
-            loss = self.loss_fn(predict, label)
+            predict, l1, e1 = self.model(time_series, node_feature)
+            loss = self.loss_fn(predict, label) + l1 + e1
 
             self.train_loss.update_with_weight(loss.item(), label.shape[0])
             optimizer.zero_grad()
@@ -86,7 +85,7 @@ class Train:
 
         for time_series, node_feature, label in dataloader:
             time_series, node_feature, label = time_series.cuda(), node_feature.cuda(), label.cuda()
-            output = self.model(time_series, node_feature)
+            output, l1, e1 = self.model(time_series, node_feature)
 
             label = label.float()
 
@@ -131,7 +130,7 @@ class Train:
         for time_series, node_feature, label in self.test_dataloader:
             label = label.long()
             time_series, node_feature, label = time_series.cuda(), node_feature.cuda(), label.cuda()
-            learable_matrix = self.model(time_series, node_feature)
+            learable_matrix, l1, e1 = self.model(time_series, node_feature)
             
             attn_weights_list = self.model.get_attention_weights()
             attn_np0.append(attn_weights_list[0].detach().cpu().numpy())
@@ -158,7 +157,6 @@ class Train:
         training_process = []
         self.current_step = 0
         best_val_AUC = 0
-        breakpoint()
         #my_table = wandb.Table(columns=["self.val_dataloader", "label"])
         #my_table.add_row(self.val_dataloader, )
 
